@@ -1,0 +1,16 @@
+{
+  "best_model": "random_forest",
+  "accuracy": {
+    "logistic_regression": 0.9878875968992248,
+    "knn_k15": 0.9898255813953488,
+    "random_forest": 0.9956395348837209
+  },
+  "kmeans_clusters": 6,
+  "features": [
+    "Latitude",
+    "Longitude",
+    "MedInc"
+  ],
+  "train_size": 16512,
+  "test_size": 4128
+}
