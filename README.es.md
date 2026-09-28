@@ -1,112 +1,68 @@
-# Plantilla de Proyecto de Ciencia de Datos
+# Calificador de casas — California Housing
 
-Esta plantilla está diseñada para impulsar proyectos de ciencia de datos proporcionando una configuración básica para conexiones de base de datos, procesamiento de datos, y desarrollo de modelos de aprendizaje automático. Incluye una organización estructurada de carpetas para tus conjuntos de datos y un conjunto de paquetes de Python predefinidos necesarios para la mayoría de las tareas de ciencia de datos.
+Clasificación de casas según su región e ingreso medio a partir del conjunto de datos California Housing (censo de California de 1990). Flujo en 5 fases: carga → K-Means (k=6) → predicción en test → clasificación supervisada → guardado de modelos.
+
+## Dataset
+
+- `data/raw/housing.csv` (20.640 filas), descargable desde `https://breathecode.herokuapp.com/asset/internal-link?id=809&path=housing.csv`. Si no existe, `src/data_loader.py` lo descarga solo.
+- Solo se usan las columnas `Latitude`, `Longitude` y `MedInc`.
+- Split reproducible 80/20: train 16.512, test 4.128 (`train_test_split`, `random_state=42`).
+
+## Pipeline por fases
+
+1. **Carga y split** (`src/data_loader.py`): recorte a 3 columnas y división train/test.
+2. **K-Means k=6** (`src/clustering.py`): `StandardScaler` ajustado solo en train + `KMeans(n_clusters=6, n_init=10)`; columna nueva `cluster` (int 0-5); scatter `Longitude` vs `Latitude` en `reports/figures/clusters_train.png`.
+3. **Predicción en test** (`src/clustering.py::predict_clusters`): `transform` + `predict` sin reentrenar; overlay en `reports/figures/clusters_train_test.png`.
+4. **Clasificación supervisada** (`src/classification.py`): `X=[Latitude, Longitude, MedInc]` escaladas, `y=cluster`. Comparativa en test:
+   - Regresión logística: 0,9879
+   - KNN (k=15): 0,9898
+   - RandomForest (200 árboles): **0,9956** ← modelo final
+5. **Guardado** (`joblib` en `models/`): `kmeans.pkl`, `scaler.pkl`, `classifier.pkl` + `metadata.json`.
+
+Detalle de cada fase (utilidad + tecnología y por qué) en `docs/`: `FASE_01` a `FASE_05` y `docs/README.md`.
 
 ## Estructura
 
-El proyecto está organizado de la siguiente manera:
+- **`src/app.py`** → orquestador de las 5 fases.
+- **`src/data_loader.py`** → carga y split.
+- **`src/clustering.py`** → K-Means + predicción.
+- **`src/classification.py`** → comparativa de clasificadores.
+- **`src/visualization.py`** → scatter train y train+test.
+- **`src/explore.ipynb`** → notebook con las 5 fases para exploración.
+- **`docs/`** → documentación por fase (qué hace, utilidad, tech y por qué).
+- **`models/`** → `kmeans.pkl`, `scaler.pkl`, `classifier.pkl`, `metadata.json`.
+- **`data/`** → `raw/housing.csv`, `processed/train_labeled.csv`, `processed/test_labeled.csv`.
+- **`reports/`** → `metrics.md`, `figures/clusters_train.png`, `figures/clusters_train_test.png`.
 
-- **`src/app.py`** → Script principal de Python donde correrá tu proyecto.
-- **`src/explore.ipynb`** → Notebook para exploración y pruebas. Una vez finalizada la exploración, migra el código limpio a `app.py`.
-- **`src/utils.py`** → Funciones auxiliares, como conexión a bases de datos.
-- **`requirements.txt`** → Lista de paquetes de Python necesarios.
-- **`models/`** → Contendrá tus clases de modelos SQLAlchemy.
-- **`data/`** → Almacena los datasets en diferentes etapas:
-  - **`data/raw/`** → Datos sin procesar.
-  - **`data/interim/`** → Datos transformados temporalmente.
-  - **`data/processed/`** → Datos listos para análisis.
-
-
-## ⚡ Configuración Inicial en Codespaces (Recomendado)
-
-No es necesario realizar ninguna configuración manual, ya que **Codespaces se configura automáticamente** con los archivos predefinidos que ha creado la academia para ti. Simplemente sigue estos pasos:
-
-1. **Espera a que el entorno se configure automáticamente**.
-   - Todos los paquetes necesarios y la base de datos se instalarán por sí mismos.
-   - El `username` y `db_name` creados automáticamente están en el archivo **`.env`** en la raíz del proyecto.
-2. **Una vez que Codespaces esté listo, puedes comenzar a trabajar inmediatamente**.
-
-
-## 💻 Configuración en Local (Solo si no puedes usar Codespaces)
-
-**Prerrequisitos**
-
-Asegúrate de tener Python 3.11+ instalado en tu máquina. También necesitarás pip para instalar los paquetes de Python.
-
-**Instalación**
-
-Clona el repositorio del proyecto en tu máquina local.
-
-Navega hasta el directorio del proyecto e instala los paquetes de Python requeridos:
+## Instalación
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Crear una base de datos (si es necesario)**
-
-Crea una nueva base de datos dentro del motor Postgres personalizando y ejecutando el siguiente comando: 
-
-```bash
-$ psql -U postgres -c "DO \$\$ BEGIN 
-    CREATE USER mi_usuario WITH PASSWORD 'mi_contraseña'; 
-    CREATE DATABASE mi_base_de_datos OWNER mi_usuario; 
-END \$\$;"
-```
-Conéctate al motor Postgres para usar tu base de datos, manipular tablas y datos: 
-
-```bash
-$ psql -U mi_usuario -d mi_base_de_datos
-```
-
-¡Una vez que estés dentro de PSQL podrás crear tablas, hacer consultas, insertar, actualizar o eliminar datos y mucho más!
-
-**Variables de entorno**
-
-Crea un archivo .env en el directorio raíz del proyecto para almacenar tus variables de entorno, como tu cadena de conexión a la base de datos:
-
-```makefile
-DATABASE_URL="postgresql://<USUARIO>:<CONTRASEÑA>@<HOST>:<PUERTO>/<NOMBRE_BD>"
-
-#example
-DATABASE_URL="postgresql://mi_usuario:mi_contraseña@localhost:5432/mi_base_de_datos"
-```
-
-## Ejecutando la Aplicación
-
-Para ejecutar la aplicación, ejecuta el script app.py desde la raíz del directorio del proyecto:
+## Uso
 
 ```bash
 python src/app.py
 ```
 
-## Añadiendo Modelos
+Reutilizar los modelos guardados:
 
-Para añadir clases de modelos SQLAlchemy, crea nuevos archivos de script de Python dentro del directorio models/. Estas clases deben ser definidas de acuerdo a tu esquema de base de datos.
-
-Definición del modelo de ejemplo (`models/example_model.py`):
-
-```py
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
-
-Base = declarative_base()
-
-class ExampleModel(Base):
-    __tablename__ = 'example_table'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True)
+```python
+import joblib
+scaler = joblib.load("models/scaler.pkl")
+kmeans = joblib.load("models/kmeans.pkl")
+clf = joblib.load("models/classifier.pkl")
+x = scaler.transform([[34.05, -118.25, 5.0]])  # Latitude, Longitude, MedInc
+print(kmeans.predict(x), clf.predict(x))
 ```
 
-## Trabajando con Datos
+## Notas técnicas
 
-Puedes colocar tus conjuntos de datos brutos en el directorio data/raw, conjuntos de datos intermedios en data/interim, y los conjuntos de datos procesados listos para el análisis en data/processed.
+- El escalado con `StandardScaler` antes de K-Means es imprescindible: `MedInc` (0,5-15) y las coordenadas tienen escalas distintas y sin escalado la distancia euclídea ignoraría el ingreso.
+- El cluster 2 (453 muestras en train) corresponde a zonas de ingreso muy alto incrustadas geográficamente.
+- El `scaler` se guarda junto a los modelos: sin él, un punto nuevo se escalaría mal y caería en el cluster equivocado.
 
-Para procesar datos, puedes modificar el script app.py para incluir tus pasos de procesamiento de datos, utilizando pandas para la manipulación y análisis de datos.
+## Base
 
-## Contribuyentes
-
-Esta plantilla fue construida como parte del [Data Science and Machine Learning Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning) de 4Geeks Academy por [Alejandro Sanchez](https://twitter.com/alesanchezr) y muchos otros contribuyentes. Descubre más sobre [los programas BootCamp de 4Geeks Academy](https://4geeksacademy.com/us/programs) aquí.
-
-Otras plantillas y recursos como este se pueden encontrar en la página de GitHub de la escuela.
+Proyecto construido sobre la [plantilla de ML de 4Geeks Academy](https://github.com/4GeeksAcademy/machine-learning-python-template).
